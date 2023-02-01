@@ -58,12 +58,12 @@ test("DELETE /deleteauthor deletes author", async () => {
 });
 test("DELETE /deletebook deletes a book and returns message", async () => {
     let author = { id: "1", name: "John", bio: "Old" };
-    await axios.post($, { baseUrl } / addtoauthors, author);
+    await axios.post(`${baseUrl}/addtoauthors`, author);
     let book = { id: "1", author_id: "1", title: "Best Book", pub_year: "2000", genre: "scifi" };
-    await axios.post($, { baseUrl } / addtobooks, book);
-    let result = await axios.delete($, { baseUrl } / deletebook, { data: { id: "1" } });
+    await axios.post(`${baseUrl}/addtobooks`, book);
+    let result = await axios.delete(`${baseUrl}/deletebook`, { data: { id: "1" } });
     expect(result.data).toEqual({ message: "Book deleted successfully" });
-    let { data } = await axios.get($, { baseUrl } / getbooks);
+    let { data } = await axios.get(`${baseUrl}/getbooks`);
     expect(data).toEqual([]);
 });
 // test("GET /foo?bar returns message", async () => {

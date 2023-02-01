@@ -23,47 +23,47 @@ afterEach(() => {
 beforeEach(() => {
     clearTables();
 });
-test("GET from getauthors returns authors", async () => {
+test("GET from /api/authors returns authors", async () => {
     let author = { id: "1", name: "John", bio: "Old" };
-    await axios.post(`${baseUrl}/addtoauthors`, author);
-    let { data } = await axios.get(`${baseUrl}/getauthors`);
+    await axios.post(`${baseUrl}/api/authors`, author);
+    let { data } = await axios.get(`${baseUrl}/api/authors`);
     expect(data).toEqual([{ id: "1", name: "John", bio: "Old" }]);
 });
-test("GET /getbooks returns books", async () => {
+test("GET /api/books returns books", async () => {
     let author = { id: "2", name: "Fry", bio: "Older" };
     await axios.post(`${baseUrl}/addtoauthors`, author);
     let book = { id: "2", author_id: "2", title: "Expensive Book", pub_year: "1900", genre: "adventure" };
     await axios.post(`${baseUrl}/addtobooks`, book);
-    let { data } = await axios.get(`${baseUrl}/getbooks`);
+    let { data } = await axios.get(`${baseUrl}/api/books`);
     expect(data).toEqual([{ id: "2", author_id: "2", title: "Expensive Book", pub_year: "1900", genre: "adventure" }]);
 });
-test("POST to addtoauthors works", async () => {
+test("POST to /api/authors works", async () => {
     let author = { id: "1", name: "John", bio: "Old" };
-    let result = await axios.post(`${baseUrl}/addtoauthors`, { author });
+    let result = await axios.post(`${baseUrl}/api/authors`, { author });
     expect(result.data).toEqual({ author });
 });
-test("POST to addtobooks works", async () => {
+test("POST to /api/books works", async () => {
     let author = { id: "1", name: "John", bio: "Old" };
     await axios.post(`${baseUrl}/addtoauthors`, author);
     let book = { id: "1", author_id: "1", title: "Best Book", pub_year: "2000", genre: "scifi" };
-    let result = await axios.post(`${baseUrl}/addtobooks`, book);
+    let result = await axios.post(`${baseUrl}/api/books`, book);
     expect(result.data).toEqual(book);
 });
-test("DELETE /deleteauthor deletes author", async () => {
+test("DELETE /api/author deletes author", async () => {
     let author = { id: "1", name: "John", bio: "Old" };
     await axios.post(`${baseUrl}/addtoauthors`, author);
     await axios.delete(`${baseUrl}/deleteauthor`, { data: { id: "1" } });
-    let { data } = await axios.get(`${baseUrl}/getauthors`);
+    let { data } = await axios.get(`${baseUrl}/api/authors`);
     expect(data).toEqual([]);
 });
-test("DELETE /deletebook deletes a book and returns message", async () => {
+test("DELETE /api/book deletes a book and returns message", async () => {
     let author = { id: "1", name: "John", bio: "Old" };
-    await axios.post(`${baseUrl}/addtoauthors`, author);
+    await axios.post(`${baseUrl}/api/authors`, author);
     let book = { id: "1", author_id: "1", title: "Best Book", pub_year: "2000", genre: "scifi" };
-    await axios.post(`${baseUrl}/addtobooks`, book);
-    let result = await axios.delete(`${baseUrl}/deletebook`, { data: { id: "1" } });
+    await axios.post(`${baseUrl}/api/books`, book);
+    let result = await axios.delete(`${baseUrl}/api/book`, { data: { id: "1" } });
     expect(result.data).toEqual({ message: "Book deleted successfully" });
-    let { data } = await axios.get(`${baseUrl}/getbooks`);
+    let { data } = await axios.get(`${baseUrl}/api/books`);
     expect(data).toEqual([]);
 });
 // test("GET /foo?bar returns message", async () => {

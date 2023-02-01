@@ -5,6 +5,7 @@ import * as url from "url";
 
 let app = express();
 app.use(express.json());
+app.use(express.static("public"));
 
 // create database "connection"
 // use absolute path to avoid this issue
@@ -31,20 +32,29 @@ interface Author {
 }
 
 type AuthorResponse = Response<Author | Error>;
-app.post("/addtoauthors", async (req, res: AuthorResponse) => {
+app.post("/api/authors", async (req, res: AuthorResponse) => {
     try {
         let author: Author = req.body;
-        let query = `INSERT INTO authors(id, name, bio) VALUES(?, ?, ?)`;
-        let params = [author.id, author.name, author.bio];
-        await db.all(query, params);
-        console.log("Author added");
-        res.json(author);
+        let authorCheck = db.all(`SELECT * FROM authors WHERE name = ?`, [author.name])
+        if (author.name.length < 1 || author.name.length > 25 || (await authorCheck).length > 0) {
+            console.log("Author Name is invalid or it already exists. Author name must be between 1 and 25 characters");
+            res.status(400).json({ error: "Author name already exists or name is invalid, must be between 1 and 25 characters" });
+        }
+        else {
+            let id = Math.floor(Math.random() * 1000) + 1;
+            console.log(author.name);
+            let query = `INSERT INTO authors(id, name, bio) VALUES(?, ?, ?)`;
+            let params = [id, author.name, author.bio];
+            await db.all(query, params);
+            console.log("Author added");
+            res.json(author);
+        }
     } catch (error) {
-        res.status(500).json({ error: "Error" });
+        res.status(500).json({ error: "Catch 500 Error" });
     }
 });
 
-app.get("/getauthors", async (req, res: AuthorResponse) => {
+app.get("/api/authors", async (req, res: AuthorResponse) => {
     try {
         let query = "SELECT * FROM authors";
         let params = [];
@@ -56,12 +66,15 @@ app.get("/getauthors", async (req, res: AuthorResponse) => {
                     params.push(req.query[key]);
                 }
             }
-            query = query.slice(0, -4);
+            query = query.slice(0, -4) + " ORDER BY name";
+        } else {
+            query += " ORDER BY name";
         }
+        let dummyQuery = `SELECT * FROM AUTHORS ORDER BY "name"`
         let authors: Author = await db.all(query, params);
         res.json(authors);
     } catch (error) {
-        res.status(500).json({ error: "Error" });
+        res.status(500).json({ error: "Catch 500 Error" });
     }
 });
 
@@ -74,13 +87,14 @@ interface Book {
 }
 type BookResponse = Response<Book | Error>;
 
-app.post("/addtobooks", async (req, res: BookResponse) => {
-    const genres = ["scifi", "adventure", "romance", "thriller"]
+app.post("/api/books", async (req, res: BookResponse) => {
+    const genres = ["scifi", "adventure", "romance", "thriller", "action", "Scifi", "Adventure", "Romance", "Thriller", "Action"]
     try {
         let book: Book = req.body;
+        let id = Math.floor(Math.random() * 1000) + 1;
         let query = `INSERT INTO books(id, author_id, title, pub_year, genre) VALUES(?, ?, ?, ?, ?)`;
-        let params = [book.id, book.author_id, book.title, book.pub_year, book.genre];
-        // check if the author_id of the book already exists in the authors table
+        let params = [id, book.author_id, book.title, book.pub_year, book.genre];
+
         let authorCheck = await db.get(`SELECT * FROM authors WHERE id = ?`, book.author_id);
         if (genres.includes(book.genre) && authorCheck) {
             await db.all(query, params);
@@ -89,40 +103,35 @@ app.post("/addtobooks", async (req, res: BookResponse) => {
         } else if (!authorCheck) {
             res.status(400).json({ error: "Author id doesn't exist. Add the author first" });
         } else {
-            res.status(400).json({ error: "Genre doesn't match given genres. Possible genres include: scifi, adventure, romance, or thriller" });
+            res.status(401).json({ error: "Genre doesn't match given genres. Possible genres include: scifi, adventure, romance, thriller, or action" });
         }
     } catch (error) {
-        res.status(500).json({ error: "Error" });
+        res.status(500).json({ error: "Catch 500 Error" });
     }
 });
 
-app.get("/getbooks", async (req, res: BookResponse) => {
+app.get("/api/books", async (req, res: BookResponse) => {
     try {
         let query = "SELECT * FROM books";
         let params = [];
-        if (Object.keys(req.query).length !== 0) {
-            query = "SELECT * FROM books WHERE ";
-            for (let key in req.query) {
-                if (key === "id" || key === "author_id" || key === "title" || key === "pub_year" || key === "genre") {
-                    query += `${key} = ? AND `;
-                    params.push(req.query[key]);
-                }
-            }
-            query = query.slice(0, -4);
+        if (req.query.search) {
+            query = "SELECT * FROM books WHERE title LIKE ?";
+            params.push(`%${req.query.search}%`);
         }
         let books: Book = await db.all(query, params);
         res.json(books);
     } catch (error) {
-        res.status(500).json({ error: "Error" });
+        res.status(500).json({ error: "Catch 500 Error" });
     }
 });
+
 
 interface SuccessMessage {
     message: string
 }
 type DeleteResponse = Response<SuccessMessage | Error>;
 
-app.delete("/deletebook", async (req, res: DeleteResponse) => {
+app.delete("/api/book", async (req, res: DeleteResponse) => {
     try {
         let id = req.body.id;
         await db.run(`DELETE FROM books WHERE id = ?`, id);
@@ -132,7 +141,7 @@ app.delete("/deletebook", async (req, res: DeleteResponse) => {
     }
 });
 
-app.delete("/deleteauthor", async (req, res: DeleteResponse) => {
+app.delete("/api/author", async (req, res: DeleteResponse) => {
     try {
         let id = req.body.id;
         await db.run(`DELETE FROM authors WHERE id = ?`, id);

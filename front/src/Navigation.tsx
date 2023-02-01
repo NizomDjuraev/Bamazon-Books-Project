@@ -1,19 +1,22 @@
+import { Link } from "react-router-dom"
 const Navigation = () => {
     return (
         <nav className="nav">
+            <h1>Bamazon Books</h1>
             <a href="/" className="title">
                 Bamazon Books
             </a>
             <ul>
                 <li>
-                    <a href="/api/authors">Authors</a>
+                    <Link to="/api/authors">Authors</Link>
                 </li>
                 <li>
-                    <a href="/api/books">Books</a>
+                    <Link to="/api/books">Books</Link>
                 </li>
             </ul>
         </nav>
     );
 }
+
 
 export default Navigation;

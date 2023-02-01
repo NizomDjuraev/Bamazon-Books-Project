@@ -19,9 +19,6 @@ function App() {
             </Route>
           </Routes>
         </div>
-        <p>
-          Bamazon Books Landing Page
-        </p>
       </div>
     </Router>
   );

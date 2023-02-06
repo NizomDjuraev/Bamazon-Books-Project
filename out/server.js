@@ -101,7 +101,29 @@ app.get("/api/books", async (req, res) => {
         res.status(500).json({ error: "Catch 500 Error" });
     }
 });
-app.delete("/api/book", async (req, res) => {
+app.put("/api/books", async (req, res) => {
+    const genres = ["scifi", "adventure", "romance", "thriller", "action", "Scifi", "Adventure", "Romance", "Thriller", "Action"];
+    try {
+        let book = req.body;
+        let bookCheck = await db.get(`SELECT * FROM books WHERE id = ?`, book.id);
+        if (genres.includes(book.genre) && bookCheck) {
+            const query = `UPDATE books SET author_id = ?, title = ?, pub_year = ?, genre = ? WHERE id = ?`;
+            const params = [book.author_id, book.title, book.pub_year, book.genre, book.id];
+            await db.run(query, params);
+            res.json(book);
+        }
+        else if (!bookCheck) {
+            res.status(400).json({ error: "Book id doesn't exist. Add the book first" });
+        }
+        else {
+            res.status(401).json({ error: "Genre doesn't match given genres. Possible genres include: scifi, adventure, romance, thriller, or action" });
+        }
+    }
+    catch (error) {
+        res.status(500).json({ error: "Catch 500 error" });
+    }
+});
+app.delete("/api/books", async (req, res) => {
     try {
         let id = req.body.id;
         await db.run(`DELETE FROM books WHERE id = ?`, id);
@@ -111,7 +133,7 @@ app.delete("/api/book", async (req, res) => {
         res.status(500).json({ error: "Error" });
     }
 });
-app.delete("/api/author", async (req, res) => {
+app.delete("/api/authors", async (req, res) => {
     try {
         let id = req.body.id;
         await db.run(`DELETE FROM authors WHERE id = ?`, id);

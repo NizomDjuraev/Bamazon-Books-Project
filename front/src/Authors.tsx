@@ -54,6 +54,7 @@ const Authors = () => {
         <>
             <div className="content">
                 <form onSubmit={handleAddAuthor} className="addAuthorsForm">
+                    <h4>Add Author Form</h4>
                     <div>
                         <label htmlFor="name">Author's Name:</label>
                         <input type="text" name="name" value={author.name} onChange={handleSubmit} />

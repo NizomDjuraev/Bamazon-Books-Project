@@ -7,6 +7,46 @@
 
 <body>
     <h1>
+        HW3 Reflection
+    </h1>
+    <h2>
+        UI
+    </h2>
+    <p>For integrating my book editing and deletion, I thought it would make sense if the user could see the changes
+        live, whether its a delete or an edit. I placed the edit and delete on the same page as the rest of my book
+        elements. I also made the edit and delete forms into one, simplifying the process of changing existing books.
+        The implementation of book editing wasn't bad, most of the logic was reused from my post request for
+        adding the book. At first when I was reusing the form elements I had written, I forgot to separate the two
+        states so it was copying the state from one set of fields to the other. It was a cool bug to visually see the
+        effects of state complexity and how it can slip by, causing other problems. Implementing delete on my front-end
+        was probably the easiest part of this.
+        <br>
+    </p>
+
+    <h2>
+        Material UI
+    </h2>
+    <p>Material UI was tricky to use when it required refactoring for some code. I kept running into errors, I decided
+        to go with only styling components such as my buttons and the elements of my navigation bar. I ran into pitfalls
+        when I would look at examples or stack overflow for errors. Some of the fixes were outdated and were on Material
+        UI v4 and now its on v5.
+    </p>
+
+    <h2>
+        PUT Endpoint
+    </h2>
+    <p>Adding the PUT endpoint itself was simple, the logic was similar to my post request. The experience from writing
+        the POST endpoints did help make writing the PUT endpoint alot smoother. The tests on the other hand,
+        AGGGHHHH. The tests just wouldn't pass no matter what changes I made. I got the sqlite contraint error, which
+        from my
+        hw1 comments I saw was from a book trying to exist without an accompanying author_id to match it. I manually
+        entered an author and a book with matching id's to resolve this and it still wouldn't work. I spent a little
+        over an hour trying to get my 3 PUT tests to work.
+    </p>
+</body>
+
+<body>
+    <h1>
         HW2 Reflection
     </h1>
     <h2>

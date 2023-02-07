@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Button from '@mui/material/Button';
 
 interface Book {
     id: string;
@@ -9,7 +10,6 @@ interface Book {
 }
 
 const Books = () => {
-    //const [book, setBook] = useState<Book>({ id: '', author_id: '', title: '', pub_year: '', genre: '' });
     const [addBook, setAddBook] = useState<Book>({ id: '', author_id: '', title: '', pub_year: '', genre: '' });
     const [editBook, setEditBook] = useState<Book>({ id: '', author_id: '', title: '', pub_year: '', genre: '' });
 
@@ -71,10 +71,11 @@ const Books = () => {
                 setMessage('Error, author id doesnt match existing ID');
             } else if (response.status == 401) {
                 setMessage('Error, genre isnt included in list of possible genres. Possible genres include Action, Adventure, Romance, Scifi, and Thriller');
+            } else if (response.status == 402) {
+                setMessage('Error, blank inputs not allowed');
             } else {
                 const data = await response.json();
                 console.log('Book edited: ', data);
-                //setBooks([...books, editBook]);
                 setMessage('Book edited successfully');
             }
         } catch (error) {
@@ -138,7 +139,7 @@ const Books = () => {
                             <label htmlFor="genre">Genre:</label>
                             <input type="text" name="genre" value={addBook.genre} onChange={handleSubmit} />
                         </div>
-                        <button type="submit">Add Book</button>
+                        <Button variant="contained" type="submit" style={{ backgroundColor: 'green' }}>Add Book</Button>
                     </form>
 
                     <form onSubmit={handleEditBook} className="editBooksForm">
@@ -163,9 +164,9 @@ const Books = () => {
                             <label htmlFor="genre">Genre:</label>
                             <input type="text" name="genre" value={editBook.genre} onChange={handleSubmit} />
                         </div>
-                        <button type="submit">Edit Book</button>
+                        <Button variant="contained" type="submit" style={{ backgroundColor: 'green' }}>Edit Book</Button>
                         <br />
-                        <button type="button" onClick={handleDeleteBook}>Delete Book</button>
+                        <Button variant="contained" type="button" onClick={handleDeleteBook} style={{ backgroundColor: 'green' }}>Delete Book</Button>
 
                     </form>
 

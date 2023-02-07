@@ -106,6 +106,9 @@ app.put("/api/books", async (req, res) => {
     try {
         let book = req.body;
         let bookCheck = await db.get(`SELECT * FROM books WHERE id = ?`, book.id);
+        if (book.author_id === '' || book.title === '' || book.pub_year === '') {
+            return res.status(402).json({ error: "Blank inputs are invalid" });
+        }
         if (genres.includes(book.genre) && bookCheck) {
             const query = `UPDATE books SET author_id = ?, title = ?, pub_year = ?, genre = ? WHERE id = ?`;
             const params = [book.author_id, book.title, book.pub_year, book.genre, book.id];

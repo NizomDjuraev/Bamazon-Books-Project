@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import Button from '@mui/material/Button';
+import { TextField } from '@mui/material';
 
 interface Author {
     id: string;
@@ -63,7 +65,8 @@ const Authors = () => {
                         <label htmlFor="bio">Author's Bio:</label>
                         <input type="text" name="bio" value={author.bio} onChange={handleSubmit} />
                     </div>
-                    <button type="submit">Add Author</button>
+
+                    <Button variant="contained" type="submit" style={{ backgroundColor: 'green' }}>Add Author</Button>
                 </form>
                 <div className="message">{message}</div>
                 <table className="authorsTable">

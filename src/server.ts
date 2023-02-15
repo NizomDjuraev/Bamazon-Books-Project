@@ -1,15 +1,27 @@
-import express, { Response } from "express";
+import express, {
+    Request,
+    Response,
+    RequestHandler,
+    CookieOptions,
+} from "express";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import * as url from "url";
+///////////////////////////////
+import * as argon2 from "argon2";
+import crypto from "crypto";
+
+import { z } from "zod";
+import cookieParser from 'cookie-parser';
 
 let app = express();
 app.use(express.json());
 app.use(express.static("public"));
+///////////////////////////////
+app.use(cookieParser());
+app.use(express.json());
 
-// create database "connection"
-// use absolute path to avoid this issue
-// https://github.com/TryGhost/node-sqlite3/issues/441
+
 let __dirname = url.fileURLToPath(new URL("..", import.meta.url));
 let dbfile = `${__dirname}database.db`;
 let db = await open({
@@ -30,8 +42,24 @@ interface Author {
     name: string;
     bio: string;
 }
+interface Book {
+    id: string;
+    author_id: string;
+    title: string;
+    pub_year: string;
+    genre: string;
+}
+
+interface MessageResponse {
+    message: string;
+}
+
+type EmptyResponse = "";
 
 type AuthorResponse = Response<Author | Error>;
+type BookResponse = Response<Book | Error>;
+
+
 app.post("/api/authors", async (req, res: AuthorResponse) => {
     try {
         let author: Author = req.body;
@@ -77,15 +105,6 @@ app.get("/api/authors", async (req, res: AuthorResponse) => {
         res.status(500).json({ error: "Catch 500 Error" });
     }
 });
-
-interface Book {
-    id: string;
-    author_id: string;
-    title: string;
-    pub_year: string;
-    genre: string;
-}
-type BookResponse = Response<Book | Error>;
 
 app.post("/api/books", async (req, res: BookResponse) => {
     const genres = ["scifi", "adventure", "romance", "thriller", "action", "Scifi", "Adventure", "Romance", "Thriller", "Action"]
@@ -178,6 +197,82 @@ app.delete("/api/authors", async (req, res: DeleteResponse) => {
 app.all("*", (req, res) => {
     res.status(404).json({ error: "Request handler doesn't exist" });
 });
+
+
+
+
+let loginSchema = z.object({
+    username: z.string().min(1),
+    password: z.string().min(1),
+});
+
+function makeToken() {
+    return crypto.randomBytes(32).toString("hex");
+}
+
+let tokenStorage: { [key: string]: { username: string } } = {};
+
+
+let cookieOptions: CookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+};
+
+app.post("/login", async (req: Request, res: Response<MessageResponse>) => {
+    try {
+        let parseResult = loginSchema.safeParse(req.body);
+        if (!parseResult.success) {
+            return res
+                .status(400)
+                .json({ message: "Username or password invalid" });
+        }
+        let { username, password } = parseResult.data;
+        let validLogin = await db.all(`SELECT * FROM users WHERE username = ?`, [username]);
+        if (validLogin.length > 0) {
+            console.log(validLogin, " login was valid");
+            console.log(validLogin[0].password);
+            if (await argon2.verify(validLogin[0].password, password)) {
+                console.log("Valid Password argon2 verification");
+                let existingToken = Object.entries(tokenStorage).find(([_, value]) => value.username === username);
+                if (existingToken) {
+                    console.log("username already has token in tokenStorage, removing old token");
+                    delete tokenStorage[existingToken[0]];
+                }
+                let token = makeToken();
+                tokenStorage[token] = { username };
+                res.cookie("token", token, cookieOptions);
+                return res.status(200).send();
+            } else {
+                console.log("Password incorrect");
+                return res.status(403).send();
+            }
+        } else {
+            console.log("Invalid login");
+            return res.status(403).send();
+        }
+    } catch {
+        return res.status(500).json();
+    }
+    return res.json({ message: "Success" });
+});
+
+app.post("/logout", async (req: Request, res: Response<EmptyResponse>) => {
+    let { token } = req.cookies;
+    if (token === undefined) {
+        // already logged out
+        return res.send();
+    }
+    if (!tokenStorage.hasOwnProperty(token)) {
+        // token invalid
+        return res.send();
+    }
+    delete tokenStorage[token];
+    return res.clearCookie("token", cookieOptions).send();
+});
+
+
+
 
 let port = 3000;
 let host = "localhost";

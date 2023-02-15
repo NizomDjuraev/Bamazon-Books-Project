@@ -2,12 +2,17 @@ import express from "express";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import * as url from "url";
+///////////////////////////////
+import * as argon2 from "argon2";
+import crypto from "crypto";
+import { z } from "zod";
+import cookieParser from 'cookie-parser';
 let app = express();
 app.use(express.json());
 app.use(express.static("public"));
-// create database "connection"
-// use absolute path to avoid this issue
-// https://github.com/TryGhost/node-sqlite3/issues/441
+///////////////////////////////
+app.use(cookieParser());
+app.use(express.json());
 let __dirname = url.fileURLToPath(new URL("..", import.meta.url));
 let dbfile = `${__dirname}database.db`;
 let db = await open({
@@ -148,6 +153,72 @@ app.delete("/api/authors", async (req, res) => {
 });
 app.all("*", (req, res) => {
     res.status(404).json({ error: "Request handler doesn't exist" });
+});
+let loginSchema = z.object({
+    username: z.string().min(1),
+    password: z.string().min(1),
+});
+function makeToken() {
+    return crypto.randomBytes(32).toString("hex");
+}
+let tokenStorage = {};
+let cookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+};
+app.post("/login", async (req, res) => {
+    try {
+        let parseResult = loginSchema.safeParse(req.body);
+        if (!parseResult.success) {
+            return res
+                .status(400)
+                .json({ message: "Username or password invalid" });
+        }
+        let { username, password } = parseResult.data;
+        let validLogin = await db.all(`SELECT * FROM users WHERE username = ?`, [username]);
+        if (validLogin.length > 0) {
+            console.log(validLogin, " login was valid");
+            console.log(validLogin[0].password);
+            if (await argon2.verify(validLogin[0].password, password)) {
+                console.log("Valid Password argon2 verification");
+                let existingToken = Object.entries(tokenStorage).find(([_, value]) => value.username === username);
+                if (existingToken) {
+                    console.log("username already has token in tokenStorage, removing old token");
+                    delete tokenStorage[existingToken[0]];
+                }
+                let token = makeToken();
+                tokenStorage[token] = { username };
+                res.cookie("token", token, cookieOptions);
+                return res.status(200).send();
+            }
+            else {
+                console.log("Password incorrect");
+                return res.status(403).send();
+            }
+        }
+        else {
+            console.log("Invalid login");
+            return res.status(403).send();
+        }
+    }
+    catch (_a) {
+        return res.status(500).json();
+    }
+    return res.json({ message: "Success" });
+});
+app.post("/logout", async (req, res) => {
+    let { token } = req.cookies;
+    if (token === undefined) {
+        // already logged out
+        return res.send();
+    }
+    if (!tokenStorage.hasOwnProperty(token)) {
+        // token invalid
+        return res.send();
+    }
+    delete tokenStorage[token];
+    return res.clearCookie("token", cookieOptions).send();
 });
 let port = 3000;
 let host = "localhost";

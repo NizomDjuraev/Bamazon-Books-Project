@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Button from '@mui/material/Button';
-import { TextField } from '@mui/material';
+// import { TextField } from '@mui/material';
 
 interface Author {
     id: string;
@@ -8,19 +8,19 @@ interface Author {
     bio: string;
 }
 
-const Authors = () => {
-    const [author, setAuthor] = useState<Author>({ id: '', name: '', bio: '' });
-    const [authors, setAuthors] = useState<Author[]>([]);
-    const [message, setMessage] = useState<string>('');
+let Authors = () => {
+    let [author, setAuthor] = useState<Author>({ id: '', name: '', bio: '' });
+    let [authors, setAuthors] = useState<Author[]>([]);
+    let [message, setMessage] = useState<string>('');
 
-    const handleSubmit = (event: React.ChangeEvent<HTMLInputElement>) => {
+    let handleSubmit = (event: React.ChangeEvent<HTMLInputElement>) => {
         setAuthor({ ...author, [event.target.name]: event.target.value });
     };
 
-    const handleAddAuthor = async (event: React.FormEvent<HTMLFormElement>) => {
+    let handleAddAuthor = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         try {
-            const response = await fetch('/api/authors', {
+            let response = await fetch('/api/authors', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -30,9 +30,11 @@ const Authors = () => {
             if (response.status == 400) {
                 setMessage('Error, author name already exists or name is invalid, must be between 1 and 25 characters');
 
+            } else if (response.status == 401) {
+                setMessage('Unauthorized access');
             } else {
                 console.log(response.status);
-                const data = await response.json();
+                let data = await response.json();
                 console.log('Author added: ', data);
                 setAuthors([...authors, author]);
                 setMessage('Author added successfully');
@@ -44,9 +46,9 @@ const Authors = () => {
     };
 
     useEffect(() => {
-        const getAuthors = async () => {
-            const response = await fetch('/api/authors');
-            const data = await response.json();
+        let getAuthors = async () => {
+            let response = await fetch('/api/authors');
+            let data = await response.json();
             setAuthors(data);
         };
         getAuthors();

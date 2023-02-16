@@ -7,19 +7,15 @@ import express, {
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import * as url from "url";
-///////////////////////////////
 import * as argon2 from "argon2";
 import crypto from "crypto";
-
 import { z } from "zod";
-import cookieParser from 'cookie-parser';
+import cookieParser from "cookie-parser";
 
 let app = express();
 app.use(express.json());
 app.use(express.static("public"));
-///////////////////////////////
 app.use(cookieParser());
-app.use(express.json());
 
 
 let __dirname = url.fileURLToPath(new URL("..", import.meta.url));
@@ -31,12 +27,38 @@ let db = await open({
 await db.get("PRAGMA foreign_keys = ON");
 
 
+let loginSchema = z.object({
+    username: z.string().min(1),
+    password: z.string().min(1),
+});
+
+let tokenStorage: { [key: string]: { username: string } } = {};
+
+let cookieOptions: CookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+};
+
+let authorize: RequestHandler = (req, res, next) => {
+    if (req.cookies["token"] && tokenStorage[req.cookies["token"]]) {
+        next();
+    } else {
+        res.status(401).json({ message: "Unauthorized access, not logged in" });
+    }
+};
+
+function makeToken() {
+    return crypto.randomBytes(32).toString("hex");
+}
 
 
+interface LoginMessage {
+    message: string
+}
 interface Error {
     error: string;
 }
-
 interface Author {
     id: string;
     name: string;
@@ -49,18 +71,21 @@ interface Book {
     pub_year: string;
     genre: string;
 }
-
 interface MessageResponse {
     message: string;
 }
-
-type EmptyResponse = "";
+interface SuccessMessage {
+    message: string
+}
 
 type AuthorResponse = Response<Author | Error>;
 type BookResponse = Response<Book | Error>;
+type LoginResponse = Response<SuccessMessage | Error>;
+type DeleteResponse = Response<SuccessMessage | Error>;
+type EmptyResponse = "";
 
 
-app.post("/api/authors", async (req, res: AuthorResponse) => {
+app.post("/api/authors", authorize, async (req: Request, res: AuthorResponse) => {
     try {
         let author: Author = req.body;
         let authorCheck = db.all(`SELECT * FROM authors WHERE name = ?`, [author.name])
@@ -82,7 +107,7 @@ app.post("/api/authors", async (req, res: AuthorResponse) => {
     }
 });
 
-app.get("/api/authors", async (req, res: AuthorResponse) => {
+app.get("/api/authors", authorize, async (req: Request, res: AuthorResponse) => {
     try {
         let query = "SELECT * FROM authors";
         let params = [];
@@ -106,8 +131,8 @@ app.get("/api/authors", async (req, res: AuthorResponse) => {
     }
 });
 
-app.post("/api/books", async (req, res: BookResponse) => {
-    const genres = ["scifi", "adventure", "romance", "thriller", "action", "Scifi", "Adventure", "Romance", "Thriller", "Action"]
+app.post("/api/books", authorize, async (req: Request, res: BookResponse) => {
+    let genres = ["scifi", "adventure", "romance", "thriller", "action", "Scifi", "Adventure", "Romance", "Thriller", "Action"]
     try {
         let book: Book = req.body;
         let id = Math.floor(Math.random() * 1000) + 1;
@@ -129,7 +154,7 @@ app.post("/api/books", async (req, res: BookResponse) => {
     }
 });
 
-app.get("/api/books", async (req, res: BookResponse) => {
+app.get("/api/books", authorize, async (req: Request, res: BookResponse) => {
     try {
         let query = "SELECT * FROM books";
         let params = [];
@@ -144,8 +169,8 @@ app.get("/api/books", async (req, res: BookResponse) => {
     }
 });
 
-app.put("/api/books", async (req, res: BookResponse) => {
-    const genres = ["scifi", "adventure", "romance", "thriller", "action", "Scifi", "Adventure", "Romance", "Thriller", "Action"]
+app.put("/api/books", authorize, async (req: Request, res: BookResponse) => {
+    let genres = ["scifi", "adventure", "romance", "thriller", "action", "Scifi", "Adventure", "Romance", "Thriller", "Action"]
     try {
         let book: Book = req.body;
 
@@ -154,8 +179,8 @@ app.put("/api/books", async (req, res: BookResponse) => {
             return res.status(402).json({ error: "Blank inputs are invalid" });
         }
         if (genres.includes(book.genre) && bookCheck) {
-            const query = `UPDATE books SET author_id = ?, title = ?, pub_year = ?, genre = ? WHERE id = ?`;
-            const params = [book.author_id, book.title, book.pub_year, book.genre, book.id];
+            let query = `UPDATE books SET author_id = ?, title = ?, pub_year = ?, genre = ? WHERE id = ?`;
+            let params = [book.author_id, book.title, book.pub_year, book.genre, book.id];
             await db.run(query, params);
             res.json(book);
         } else if (!bookCheck) {
@@ -168,58 +193,8 @@ app.put("/api/books", async (req, res: BookResponse) => {
     }
 });
 
-
-interface SuccessMessage {
-    message: string
-}
-type DeleteResponse = Response<SuccessMessage | Error>;
-
-app.delete("/api/books", async (req, res: DeleteResponse) => {
-    try {
-        let id = req.body.id;
-        await db.run(`DELETE FROM books WHERE id = ?`, id);
-        res.json({ message: "Book deleted successfully" });
-    } catch (error) {
-        res.status(500).json({ error: "Error" });
-    }
-});
-
-app.delete("/api/authors", async (req, res: DeleteResponse) => {
-    try {
-        let id = req.body.id;
-        await db.run(`DELETE FROM authors WHERE id = ?`, id);
-        res.json({ message: "Author deleted successfully" });
-    } catch (error) {
-        res.status(500).json({ error: "Error" });
-    }
-});
-
-app.all("*", (req, res) => {
-    res.status(404).json({ error: "Request handler doesn't exist" });
-});
-
-
-
-
-let loginSchema = z.object({
-    username: z.string().min(1),
-    password: z.string().min(1),
-});
-
-function makeToken() {
-    return crypto.randomBytes(32).toString("hex");
-}
-
-let tokenStorage: { [key: string]: { username: string } } = {};
-
-
-let cookieOptions: CookieOptions = {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-};
-
-app.post("/login", async (req: Request, res: Response<MessageResponse>) => {
+app.post("/login", async (req, res: LoginResponse) => {
+    console.log("server test");
     try {
         let parseResult = loginSchema.safeParse(req.body);
         if (!parseResult.success) {
@@ -234,10 +209,10 @@ app.post("/login", async (req: Request, res: Response<MessageResponse>) => {
             console.log(validLogin[0].password);
             if (await argon2.verify(validLogin[0].password, password)) {
                 console.log("Valid Password argon2 verification");
-                let existingToken = Object.entries(tokenStorage).find(([_, value]) => value.username === username);
+                let existingToken = Object.keys(tokenStorage).find(key => tokenStorage[key].username === username);
                 if (existingToken) {
                     console.log("username already has token in tokenStorage, removing old token");
-                    delete tokenStorage[existingToken[0]];
+                    delete tokenStorage[existingToken];
                 }
                 let token = makeToken();
                 tokenStorage[token] = { username };
@@ -254,24 +229,47 @@ app.post("/login", async (req: Request, res: Response<MessageResponse>) => {
     } catch {
         return res.status(500).json();
     }
-    return res.json({ message: "Success" });
 });
 
-app.post("/logout", async (req: Request, res: Response<EmptyResponse>) => {
-    let { token } = req.cookies;
-    if (token === undefined) {
-        // already logged out
-        return res.send();
+app.get('/authorize', (req, res) => {
+    console.log("authorize handler");
+    console.log(req.cookies);
+    if (req.cookies["token"] && tokenStorage[req.cookies["token"]]) {
+        res.status(200).send(true);
+    } else {
+        res.status(401).send(false);
     }
-    if (!tokenStorage.hasOwnProperty(token)) {
-        // token invalid
-        return res.send();
+});
+
+app.delete('/logout', (req, res) => {
+    res.clearCookie("token", cookieOptions).sendStatus(200);
+    console.log("cookie clear successfully");
+});
+
+app.delete("/api/books", authorize, async (req: Request, res: DeleteResponse) => {
+    try {
+        let id = req.body.id;
+        await db.run(`DELETE FROM books WHERE id = ?`, id);
+        res.json({ message: "Book deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: "Error" });
     }
-    delete tokenStorage[token];
-    return res.clearCookie("token", cookieOptions).send();
+});
+
+app.delete("/api/authors", authorize, async (req: Request, res: DeleteResponse) => {
+    try {
+        let id = req.body.id;
+        await db.run(`DELETE FROM authors WHERE id = ?`, id);
+        res.json({ message: "Author deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: "Error" });
+    }
 });
 
 
+app.all("*", (req, res) => {
+    res.status(404).json({ error: "Request handler doesn't exist" });
+});
 
 
 let port = 3000;

@@ -14,3 +14,7 @@ INSERT INTO books(id, author_id, title, pub_year, genre) VALUES (101, 2, "Midter
 INSERT INTO books(id, author_id, title, pub_year, genre) VALUES (5, 10, "How to Paint", 2023, "Adventure");
 
 INSERT INTO books(id, author_id, title, pub_year, genre) VALUES (25, 1, "Common Name", 2023, "Romance");
+
+
+-- Users test username: username , password: password
+INSERT INTO users(username, password, role) VALUES ('admin', '$argon2id$v=19$m=65536,t=3,p=4$0toyJJQ6Xdv5rUQq1cCoCQ$hYs/2qQrQDy4gld9v4fy0kiQnBzpAu/FWyJgyTq3Ito', 'admin');

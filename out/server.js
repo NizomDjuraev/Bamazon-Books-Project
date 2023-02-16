@@ -2,17 +2,14 @@ import express from "express";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import * as url from "url";
-///////////////////////////////
 import * as argon2 from "argon2";
 import crypto from "crypto";
 import { z } from "zod";
-import cookieParser from 'cookie-parser';
+import cookieParser from "cookie-parser";
 let app = express();
 app.use(express.json());
 app.use(express.static("public"));
-///////////////////////////////
 app.use(cookieParser());
-app.use(express.json());
 let __dirname = url.fileURLToPath(new URL("..", import.meta.url));
 let dbfile = `${__dirname}database.db`;
 let db = await open({
@@ -20,7 +17,28 @@ let db = await open({
     driver: sqlite3.Database,
 });
 await db.get("PRAGMA foreign_keys = ON");
-app.post("/api/authors", async (req, res) => {
+let loginSchema = z.object({
+    username: z.string().min(1),
+    password: z.string().min(1),
+});
+let tokenStorage = {};
+let cookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+};
+let authorize = (req, res, next) => {
+    if (req.cookies["token"] && tokenStorage[req.cookies["token"]]) {
+        next();
+    }
+    else {
+        res.status(401).json({ message: "Unauthorized access, not logged in" });
+    }
+};
+function makeToken() {
+    return crypto.randomBytes(32).toString("hex");
+}
+app.post("/api/authors", authorize, async (req, res) => {
     try {
         let author = req.body;
         let authorCheck = db.all(`SELECT * FROM authors WHERE name = ?`, [author.name]);
@@ -42,7 +60,7 @@ app.post("/api/authors", async (req, res) => {
         res.status(500).json({ error: "Catch 500 Error" });
     }
 });
-app.get("/api/authors", async (req, res) => {
+app.get("/api/authors", authorize, async (req, res) => {
     try {
         let query = "SELECT * FROM authors";
         let params = [];
@@ -67,8 +85,8 @@ app.get("/api/authors", async (req, res) => {
         res.status(500).json({ error: "Catch 500 Error" });
     }
 });
-app.post("/api/books", async (req, res) => {
-    const genres = ["scifi", "adventure", "romance", "thriller", "action", "Scifi", "Adventure", "Romance", "Thriller", "Action"];
+app.post("/api/books", authorize, async (req, res) => {
+    let genres = ["scifi", "adventure", "romance", "thriller", "action", "Scifi", "Adventure", "Romance", "Thriller", "Action"];
     try {
         let book = req.body;
         let id = Math.floor(Math.random() * 1000) + 1;
@@ -91,7 +109,7 @@ app.post("/api/books", async (req, res) => {
         res.status(500).json({ error: "Catch 500 Error" });
     }
 });
-app.get("/api/books", async (req, res) => {
+app.get("/api/books", authorize, async (req, res) => {
     try {
         let query = "SELECT * FROM books";
         let params = [];
@@ -106,8 +124,8 @@ app.get("/api/books", async (req, res) => {
         res.status(500).json({ error: "Catch 500 Error" });
     }
 });
-app.put("/api/books", async (req, res) => {
-    const genres = ["scifi", "adventure", "romance", "thriller", "action", "Scifi", "Adventure", "Romance", "Thriller", "Action"];
+app.put("/api/books", authorize, async (req, res) => {
+    let genres = ["scifi", "adventure", "romance", "thriller", "action", "Scifi", "Adventure", "Romance", "Thriller", "Action"];
     try {
         let book = req.body;
         let bookCheck = await db.get(`SELECT * FROM books WHERE id = ?`, book.id);
@@ -115,8 +133,8 @@ app.put("/api/books", async (req, res) => {
             return res.status(402).json({ error: "Blank inputs are invalid" });
         }
         if (genres.includes(book.genre) && bookCheck) {
-            const query = `UPDATE books SET author_id = ?, title = ?, pub_year = ?, genre = ? WHERE id = ?`;
-            const params = [book.author_id, book.title, book.pub_year, book.genre, book.id];
+            let query = `UPDATE books SET author_id = ?, title = ?, pub_year = ?, genre = ? WHERE id = ?`;
+            let params = [book.author_id, book.title, book.pub_year, book.genre, book.id];
             await db.run(query, params);
             res.json(book);
         }
@@ -131,43 +149,8 @@ app.put("/api/books", async (req, res) => {
         res.status(500).json({ error: "Catch 500 error" });
     }
 });
-app.delete("/api/books", async (req, res) => {
-    try {
-        let id = req.body.id;
-        await db.run(`DELETE FROM books WHERE id = ?`, id);
-        res.json({ message: "Book deleted successfully" });
-    }
-    catch (error) {
-        res.status(500).json({ error: "Error" });
-    }
-});
-app.delete("/api/authors", async (req, res) => {
-    try {
-        let id = req.body.id;
-        await db.run(`DELETE FROM authors WHERE id = ?`, id);
-        res.json({ message: "Author deleted successfully" });
-    }
-    catch (error) {
-        res.status(500).json({ error: "Error" });
-    }
-});
-app.all("*", (req, res) => {
-    res.status(404).json({ error: "Request handler doesn't exist" });
-});
-let loginSchema = z.object({
-    username: z.string().min(1),
-    password: z.string().min(1),
-});
-function makeToken() {
-    return crypto.randomBytes(32).toString("hex");
-}
-let tokenStorage = {};
-let cookieOptions = {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-};
 app.post("/login", async (req, res) => {
+    console.log("server test");
     try {
         let parseResult = loginSchema.safeParse(req.body);
         if (!parseResult.success) {
@@ -182,10 +165,10 @@ app.post("/login", async (req, res) => {
             console.log(validLogin[0].password);
             if (await argon2.verify(validLogin[0].password, password)) {
                 console.log("Valid Password argon2 verification");
-                let existingToken = Object.entries(tokenStorage).find(([_, value]) => value.username === username);
+                let existingToken = Object.keys(tokenStorage).find(key => tokenStorage[key].username === username);
                 if (existingToken) {
                     console.log("username already has token in tokenStorage, removing old token");
-                    delete tokenStorage[existingToken[0]];
+                    delete tokenStorage[existingToken];
                 }
                 let token = makeToken();
                 tokenStorage[token] = { username };
@@ -205,20 +188,43 @@ app.post("/login", async (req, res) => {
     catch (_a) {
         return res.status(500).json();
     }
-    return res.json({ message: "Success" });
 });
-app.post("/logout", async (req, res) => {
-    let { token } = req.cookies;
-    if (token === undefined) {
-        // already logged out
-        return res.send();
+app.get('/authorize', (req, res) => {
+    console.log("authorize handler");
+    console.log(req.cookies);
+    if (req.cookies["token"] && tokenStorage[req.cookies["token"]]) {
+        res.status(200).send(true);
     }
-    if (!tokenStorage.hasOwnProperty(token)) {
-        // token invalid
-        return res.send();
+    else {
+        res.status(401).send(false);
     }
-    delete tokenStorage[token];
-    return res.clearCookie("token", cookieOptions).send();
+});
+app.delete('/logout', (req, res) => {
+    res.clearCookie("token", cookieOptions).sendStatus(200);
+    console.log("cookie clear successfully");
+});
+app.delete("/api/books", authorize, async (req, res) => {
+    try {
+        let id = req.body.id;
+        await db.run(`DELETE FROM books WHERE id = ?`, id);
+        res.json({ message: "Book deleted successfully" });
+    }
+    catch (error) {
+        res.status(500).json({ error: "Error" });
+    }
+});
+app.delete("/api/authors", authorize, async (req, res) => {
+    try {
+        let id = req.body.id;
+        await db.run(`DELETE FROM authors WHERE id = ?`, id);
+        res.json({ message: "Author deleted successfully" });
+    }
+    catch (error) {
+        res.status(500).json({ error: "Error" });
+    }
+});
+app.all("*", (req, res) => {
+    res.status(404).json({ error: "Request handler doesn't exist" });
 });
 let port = 3000;
 let host = "localhost";

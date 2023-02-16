@@ -9,19 +9,19 @@ interface Book {
     genre: string;
 }
 
-const Books = () => {
-    const [addBook, setAddBook] = useState<Book>({ id: '', author_id: '', title: '', pub_year: '', genre: '' });
-    const [editBook, setEditBook] = useState<Book>({ id: '', author_id: '', title: '', pub_year: '', genre: '' });
+let Books = () => {
+    let [addBook, setAddBook] = useState<Book>({ id: '', author_id: '', title: '', pub_year: '', genre: '' });
+    let [editBook, setEditBook] = useState<Book>({ id: '', author_id: '', title: '', pub_year: '', genre: '' });
 
-    const [books, setBooks] = useState<Book[]>([]);
-    const [message, setMessage] = useState<string>('');
-    const [searchTitle, setSearchTitle] = useState('');
+    let [books, setBooks] = useState<Book[]>([]);
+    let [message, setMessage] = useState<string>('');
+    let [searchTitle, setSearchTitle] = useState('');
 
-    const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    let handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTitle(event.target.value);
     };
 
-    const handleSubmit = (event: React.ChangeEvent<HTMLInputElement>) => {
+    let handleSubmit = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.form && event.target.form.className === 'addBooksForm') {
             setAddBook({ ...addBook, [event.target.name]: event.target.value });
         } else if (event.target.form && event.target.form.className === 'editBooksForm') {
@@ -31,10 +31,10 @@ const Books = () => {
 
 
 
-    const handleAddBook = async (event: React.FormEvent<HTMLFormElement>) => {
+    let handleAddBook = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         try {
-            const response = await fetch('/api/books', {
+            let response = await fetch('/api/books', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -43,10 +43,10 @@ const Books = () => {
             });
             if (response.status == 400) {
                 setMessage('Error, author id doesnt match existing ID');
-            } else if (response.status == 401) {
+            } else if (response.status == 422) {
                 setMessage('Error, genre isnt included in list of possible genres. Possible genres include Action, Adventure, Romance, Scifi, and Thriller');
             } else {
-                const data = await response.json();
+                let data = await response.json();
                 console.log('Book added: ', data);
                 setBooks([...books, addBook]);
                 setMessage('Book added successfully');
@@ -57,10 +57,10 @@ const Books = () => {
         }
     };
 
-    const handleEditBook = async (event: React.FormEvent<HTMLFormElement>) => {
+    let handleEditBook = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         try {
-            const response = await fetch('/api/books', {
+            let response = await fetch('/api/books', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -69,12 +69,12 @@ const Books = () => {
             });
             if (response.status == 400) {
                 setMessage('Error, author id doesnt match existing ID');
-            } else if (response.status == 401) {
+            } else if (response.status == 422) {
                 setMessage('Error, genre isnt included in list of possible genres. Possible genres include Action, Adventure, Romance, Scifi, and Thriller');
             } else if (response.status == 402) {
                 setMessage('Error, blank inputs not allowed');
             } else {
-                const data = await response.json();
+                let data = await response.json();
                 console.log('Book edited: ', data);
                 setMessage('Book edited successfully');
             }
@@ -84,9 +84,9 @@ const Books = () => {
         }
     };
 
-    const handleDeleteBook = async () => {
+    let handleDeleteBook = async () => {
         try {
-            const response = await fetch('/api/books', {
+            let response = await fetch('/api/books', {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -109,9 +109,9 @@ const Books = () => {
 
 
     useEffect(() => {
-        const getBooks = async () => {
-            const response = await fetch('/api/books');
-            const data = await response.json();
+        let getBooks = async () => {
+            let response = await fetch('/api/books');
+            let data = await response.json();
             setBooks(data);
         };
         getBooks();

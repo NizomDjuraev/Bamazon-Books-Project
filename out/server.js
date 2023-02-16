@@ -6,6 +6,7 @@ import * as argon2 from "argon2";
 import crypto from "crypto";
 import { z } from "zod";
 import cookieParser from "cookie-parser";
+import * as path from "path";
 let app = express();
 app.use(express.json());
 app.use(express.static("public"));
@@ -16,6 +17,7 @@ let db = await open({
     filename: dbfile,
     driver: sqlite3.Database,
 });
+let publicStaticFolder = path.resolve(__dirname, "out", "public");
 await db.get("PRAGMA foreign_keys = ON");
 let loginSchema = z.object({
     username: z.string().min(1),
@@ -225,6 +227,9 @@ app.delete("/api/authors", authorize, async (req, res) => {
 });
 app.all("*", (req, res) => {
     res.status(404).json({ error: "Request handler doesn't exist" });
+});
+app.get("/*", (req, res) => {
+    res.sendFile("index.html", { root: publicStaticFolder });
 });
 let port = 3000;
 let host = "localhost";

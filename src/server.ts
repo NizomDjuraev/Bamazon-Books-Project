@@ -12,10 +12,14 @@ import crypto from "crypto";
 import { z } from "zod";
 import cookieParser from "cookie-parser";
 
+import * as path from "path";
+
+
 let app = express();
 app.use(express.json());
 app.use(express.static("public"));
 app.use(cookieParser());
+
 
 
 let __dirname = url.fileURLToPath(new URL("..", import.meta.url));
@@ -24,6 +28,7 @@ let db = await open({
     filename: dbfile,
     driver: sqlite3.Database,
 });
+let publicStaticFolder = path.resolve(__dirname, "out", "public");
 await db.get("PRAGMA foreign_keys = ON");
 
 
@@ -270,7 +275,9 @@ app.delete("/api/authors", authorize, async (req: Request, res: DeleteResponse) 
 app.all("*", (req, res) => {
     res.status(404).json({ error: "Request handler doesn't exist" });
 });
-
+app.get("/*", (req, res) => {
+    res.sendFile("index.html", { root: publicStaticFolder });
+});
 
 let port = 3000;
 let host = "localhost";

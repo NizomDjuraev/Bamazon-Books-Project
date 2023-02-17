@@ -7,6 +7,42 @@
 
 <body>
     <h1>
+        HW4 Reflection
+    </h1>
+    <h2>
+        UI
+    </h2>
+    <p>For the authorization, I initially integrated it into only my UI. I setup it up so that its checking if the user
+        is logged in and then
+        making all author and book functionality accessible/visible. If the user isn't logged in, only the account page
+        is accessible, allowing the user to log in. It prevents users from accessing the authors and books manually by
+        either visiting the link directly or curling it with server side validation. This means theres both client side
+        and server side validation. If the user tries accessing the page directly via the http link, they'll receive a
+        blanks screen.
+        <br>
+        <br>
+        I struggled with getting the navigation page to properly function when user is logged in. I had issues getting
+        that to work properly by checking if the user was logged in and authorized. I setup a separate /authorize
+        endpoint for this that returns a boolean. Nothing specific was difficult, I wasted time trying to resolve an
+        issue when I had commented out my cookie-parser and another import causing silly problems for an hour.
+    </p>
+
+    <h2>
+        Login Endpoint
+    </h2>
+    <p>Adding the logins and authorization to the back-end wasn't too complicated. I had some issues bringing over some
+        of the
+        workflow I setup in activity 4 since it covered the basics of this. The process was relatively smooth aside from
+        some silly issues again. I setup the login and authorization for the 375 project for the most part so I was
+        familiar with the flow and how it should be implemented. I also realized I had setup the 375 project and made it
+        vulnerable to client side script attacks since the cookie was accessible by JS as well as not having the cookie
+        hashed/hidden.
+    </p>
+
+</body>
+
+<body>
+    <h1>
         HW3 Reflection
     </h1>
     <h2>

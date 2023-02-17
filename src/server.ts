@@ -17,8 +17,8 @@ import * as path from "path";
 
 let app = express();
 app.use(express.json());
-app.use(express.static("public"));
 app.use(cookieParser());
+
 
 
 
@@ -30,8 +30,10 @@ let db = await open({
 });
 let publicStaticFolder = path.resolve(__dirname, "out", "public");
 await db.get("PRAGMA foreign_keys = ON");
-
-
+//////////////
+//trying to fix broken build site
+app.use(express.static(path.join(__dirname, 'build')));
+/////////////////////////
 let loginSchema = z.object({
     username: z.string().min(1),
     password: z.string().min(1),
@@ -272,9 +274,13 @@ app.delete("/api/authors", authorize, async (req: Request, res: DeleteResponse) 
 });
 
 
-app.all("*", (req, res) => {
-    res.status(404).json({ error: "Request handler doesn't exist" });
-});
+// app.all("*", (req, res) => {
+//     res.status(404).json({ error: "Request handler doesn't exist" });
+// });
+
+
+
+app.use(express.static("public"));
 app.get("/*", (req, res) => {
     res.sendFile("index.html", { root: publicStaticFolder });
 });

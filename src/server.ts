@@ -18,6 +18,7 @@ import * as path from "path";
 let app = express();
 app.use(express.json());
 app.use(cookieParser());
+app.use(express.static("public"));
 
 
 
@@ -274,15 +275,14 @@ app.delete("/api/authors", authorize, async (req: Request, res: DeleteResponse) 
 });
 
 
-// app.all("*", (req, res) => {
-//     res.status(404).json({ error: "Request handler doesn't exist" });
-// });
 
 
-
-app.use(express.static("public"));
 app.get("/*", (req, res) => {
     res.sendFile("index.html", { root: publicStaticFolder });
+});
+
+app.all("*", (req, res) => {
+    res.status(404).json({ error: "Request handler doesn't exist" });
 });
 
 let port = 3000;

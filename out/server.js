@@ -10,6 +10,7 @@ import * as path from "path";
 let app = express();
 app.use(express.json());
 app.use(cookieParser());
+app.use(express.static("public"));
 let __dirname = url.fileURLToPath(new URL("..", import.meta.url));
 let dbfile = `${__dirname}database.db`;
 let db = await open({
@@ -228,12 +229,11 @@ app.delete("/api/authors", authorize, async (req, res) => {
         res.status(500).json({ error: "Error" });
     }
 });
-// app.all("*", (req, res) => {
-//     res.status(404).json({ error: "Request handler doesn't exist" });
-// });
-app.use(express.static("public"));
 app.get("/*", (req, res) => {
     res.sendFile("index.html", { root: publicStaticFolder });
+});
+app.all("*", (req, res) => {
+    res.status(404).json({ error: "Request handler doesn't exist" });
 });
 let port = 3000;
 let host = "localhost";

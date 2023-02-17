@@ -11,17 +11,7 @@ import * as argon2 from "argon2";
 import crypto from "crypto";
 import { z } from "zod";
 import cookieParser from "cookie-parser";
-
 import * as path from "path";
-
-
-let app = express();
-app.use(express.json());
-app.use(cookieParser());
-app.use(express.static("public"));
-
-
-
 
 let __dirname = url.fileURLToPath(new URL("..", import.meta.url));
 let dbfile = `${__dirname}database.db`;
@@ -30,11 +20,16 @@ let db = await open({
     driver: sqlite3.Database,
 });
 let publicStaticFolder = path.resolve(__dirname, "out", "public");
+
+let app = express();
+app.use(express.json());
+app.use(cookieParser());
+app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, 'public')));
+
 await db.get("PRAGMA foreign_keys = ON");
-//////////////
-//trying to fix broken build site
-app.use(express.static(path.join(__dirname, 'build')));
-/////////////////////////
+
+
 let loginSchema = z.object({
     username: z.string().min(1),
     password: z.string().min(1),
@@ -275,14 +270,8 @@ app.delete("/api/authors", authorize, async (req: Request, res: DeleteResponse) 
 });
 
 
-
-
-app.get("/*", (req, res) => {
-    res.sendFile("index.html", { root: publicStaticFolder });
-});
-
-app.all("*", (req, res) => {
-    res.status(404).json({ error: "Request handler doesn't exist" });
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, './out/public', 'index.html'));
 });
 
 let port = 3000;

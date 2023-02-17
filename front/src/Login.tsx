@@ -54,7 +54,7 @@ let Login = () => {
                 setMessage('Logged in successfully');
                 setLogoutMessage('');
                 console.log(response.body);
-                navigate('/api/authors');
+                navigate('/Authors');
                 window.location.reload();
             }
         }

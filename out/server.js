@@ -14,16 +14,9 @@ let db = await open({
     driver: sqlite3.Database,
 });
 let publicStaticFolder = path.resolve(__dirname, "out", "public");
-// let app = express();
-// app.use(express.json());
-// app.use(cookieParser());
-// app.use(express.static("public"));
-// app.use(express.static(path.join(__dirname, 'public')));
 let app = express();
 app.use(express.json());
 app.use(cookieParser());
-//app.use(express.static("public"));
-//app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, "out", "public")));
 await db.get("PRAGMA foreign_keys = ON");
 let loginSchema = z.object({
@@ -232,9 +225,6 @@ app.delete("/api/authors", authorize, async (req, res) => {
         res.status(500).json({ error: "Error" });
     }
 });
-// app.get('*', (req, res) => {
-//     res.sendFile(path.join(__dirname, './out/public', 'index.html'));
-// });
 app.get('/*', (req, res) => {
     res.sendFile("index.html", { root: publicStaticFolder });
 });

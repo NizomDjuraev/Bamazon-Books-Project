@@ -19,3 +19,8 @@ CREATE TABLE users (
     password TEXT,
     role TEXT
 );
+
+CREATE TABLE created_by (
+    username INTEGER,
+    book_id TEXT
+);

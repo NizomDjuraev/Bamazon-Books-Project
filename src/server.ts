@@ -12,6 +12,7 @@ import crypto from "crypto";
 import { z } from "zod";
 import cookieParser from "cookie-parser";
 import * as path from "path";
+import helmet from "helmet";
 
 let __dirname = url.fileURLToPath(new URL("..", import.meta.url));
 let dbfile = `${__dirname}database.db`;
@@ -26,6 +27,7 @@ let app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "out", "public")));
+app.use(helmet());
 
 await db.get("PRAGMA foreign_keys = ON");
 
@@ -145,6 +147,8 @@ app.post("/api/books", authorize, async (req: Request, res: BookResponse) => {
         let authorCheck = await db.get(`SELECT * FROM authors WHERE id = ?`, book.author_id);
         if (genres.includes(book.genre) && authorCheck) {
             await db.all(query, params);
+            let username = tokenStorage[req.cookies["token"]].username;
+            await db.all(`INSERT INTO created_by(username, book_id) VALUES(?, ?)`, [username, id])
             console.log("Book added");
             res.json(book);
         } else if (!authorCheck) {
@@ -182,10 +186,24 @@ app.put("/api/books", authorize, async (req: Request, res: BookResponse) => {
             return res.status(402).json({ error: "Blank inputs are invalid" });
         }
         if (genres.includes(book.genre) && bookCheck) {
-            let query = `UPDATE books SET author_id = ?, title = ?, pub_year = ?, genre = ? WHERE id = ?`;
-            let params = [book.author_id, book.title, book.pub_year, book.genre, book.id];
-            await db.run(query, params);
-            res.json(book);
+            // let query = `UPDATE books SET author_id = ?, title = ?, pub_year = ?, genre = ? WHERE id = ?`;
+            // let params = [book.author_id, book.title, book.pub_year, book.genre, book.id];
+            // await db.run(query, params);
+            // res.json(book);
+            let username = tokenStorage[req.cookies["token"]].username;
+            let query = `SELECT * FROM created_by WHERE username = ? AND book_id = ?`;
+            let params = [username, book.id];
+            console.log("username ", username, " book id ", book.id);
+            let createdByCheck = await db.get(query, params);
+            if (createdByCheck) {
+                let query = `UPDATE books SET author_id = ?, title = ?, pub_year = ?, genre = ? WHERE id = ?`;
+                let params = [book.author_id, book.title, book.pub_year, book.genre, book.id];
+                await db.run(query, params);
+                res.json(book);
+            } else {
+                console.log("Unauthorized user action")
+                res.status(403).json({ error: "Unauthorized user action" });
+            }
         } else if (!bookCheck) {
             res.status(400).json({ error: "Book id doesn't exist. Add the book first" });
         } else {
@@ -235,8 +253,8 @@ app.post("/login", async (req, res: LoginResponse) => {
 });
 
 app.get('/authorize', (req, res) => {
-    console.log("authorize handler");
-    console.log(req.cookies);
+    // console.log("authorize handler");
+    // console.log(req.cookies);
     if (req.cookies["token"] && tokenStorage[req.cookies["token"]]) {
         res.status(200).send(true);
     } else {
@@ -252,8 +270,18 @@ app.delete('/logout', (req, res) => {
 app.delete("/api/books", authorize, async (req: Request, res: DeleteResponse) => {
     try {
         let id = req.body.id;
-        await db.run(`DELETE FROM books WHERE id = ?`, id);
-        res.json({ message: "Book deleted successfully" });
+        let username = tokenStorage[req.cookies["token"]].username;
+        let query = `SELECT * FROM created_by WHERE username = ? AND book_id = ?`;
+        let params = [username, id];
+        console.log("username ", username, " book_id ", id);
+        let createdByCheck = await db.get(query, params);
+        if (createdByCheck) {
+            await db.run(`DELETE FROM books WHERE id = ?`, id);
+            res.json({ message: "Book deleted successfully" });
+        } else {
+            console.log("Unauthorized user action")
+            res.status(403).json({ error: "Unauthorized user action" });
+        }
     } catch (error) {
         res.status(500).json({ error: "Error" });
     }

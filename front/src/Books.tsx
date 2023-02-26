@@ -73,6 +73,8 @@ let Books = () => {
                 setMessage('Error, genre isnt included in list of possible genres. Possible genres include Action, Adventure, Romance, Scifi, and Thriller');
             } else if (response.status == 402) {
                 setMessage('Error, blank inputs not allowed');
+            } else if (response.status == 403) {
+                setMessage('Unauthorized user access, action forbidden');
             } else {
                 let data = await response.json();
                 console.log('Book edited: ', data);
@@ -96,6 +98,8 @@ let Books = () => {
             if (response.ok) {
                 console.log('Book deleted successfully');
                 setMessage('Book deleted successfully');
+            } else if (response.status === 403) {
+                setMessage('Unauthorized user access, action forbidden');
             } else {
                 console.error('Error deleting book');
                 setMessage('Error deleting book');

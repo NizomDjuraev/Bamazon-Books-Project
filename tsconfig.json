@@ -10,8 +10,5 @@
 
 		// enable type checking
 		"strict": true,
-
-		// to make jest happy
-		"esModuleInterop": true
 	}
 }
